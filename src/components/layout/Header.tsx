@@ -18,6 +18,7 @@ const navigation = [
       { name: "Laravel Development", href: "/services/laravel" },
     ],
   },
+  { name: "Team", href: "/team" },
   { name: "Portfolio", href: "/portfolio" },
   { name: "Contact", href: "/contact" },
 ];

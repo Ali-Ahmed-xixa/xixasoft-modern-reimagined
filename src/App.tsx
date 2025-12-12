@@ -13,6 +13,7 @@ import GoogleAdsPage from "./pages/services/GoogleAdsPage";
 import LaravelPage from "./pages/services/LaravelPage";
 import PortfolioPage from "./pages/PortfolioPage";
 import ContactPage from "./pages/ContactPage";
+import TeamPage from "./pages/TeamPage";
 import PrivacyPolicyPage from "./pages/legal/PrivacyPolicyPage";
 import TermsOfServicePage from "./pages/legal/TermsOfServicePage";
 import ImprintPage from "./pages/legal/ImprintPage";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/services/google-ads" element={<GoogleAdsPage />} />
             <Route path="/services/laravel" element={<LaravelPage />} />
             <Route path="/portfolio" element={<PortfolioPage />} />
+            <Route path="/team" element={<TeamPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/terms-of-service" element={<TermsOfServicePage />} />
