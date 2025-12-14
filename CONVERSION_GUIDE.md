@@ -755,6 +755,235 @@ include 'includes/header.php';
 
 ---
 
+### 4. Chatbot Component (FAQ-based)
+
+#### js/chatbot.js
+```javascript
+// FAQ Data - Customize these responses for your business
+const faqData = [
+  {
+    keywords: ['hello', 'hi', 'hey', 'hallo', 'guten tag'],
+    response: 'Hello! Welcome to xixasoft. How can I help you today? You can ask me about our services like JTL Shop, Shopware, Laravel development, or Google Ads.'
+  },
+  {
+    keywords: ['jtl', 'shop', 'shopware', 'theme', 'template'],
+    response: 'We specialize in JTL Shop and Shopware theme development! We create custom, responsive themes that match your brand identity. Our themes are optimized for performance and SEO. Would you like to discuss your project?'
+  },
+  {
+    keywords: ['wawi', 'warenwirtschaft', 'inventory', 'erp'],
+    response: 'JTL WAWI is our expertise! We help with setup, configuration, customization, and optimization of your JTL WAWI system. We can also integrate it with your online shop and other business systems.'
+  },
+  {
+    keywords: ['google ads', 'advertising', 'ppc', 'adwords', 'campaign'],
+    response: 'We offer professional Google Ads management services. This includes campaign setup, keyword research, ad copywriting, bid optimization, and performance tracking to maximize your ROI.'
+  },
+  {
+    keywords: ['laravel', 'php', 'web app', 'application', 'custom', 'development'],
+    response: 'We build custom web applications using Laravel PHP framework. From CRM systems to e-commerce platforms, we can develop tailored solutions for your business needs.'
+  },
+  {
+    keywords: ['price', 'cost', 'quote', 'budget', 'preis', 'kosten'],
+    response: 'Pricing depends on your specific requirements. Please contact us through our contact page or email us for a free consultation and personalized quote for your project.'
+  },
+  {
+    keywords: ['contact', 'email', 'phone', 'reach', 'kontakt'],
+    response: 'You can reach us through our contact page at /contact.php. We\'ll get back to you within 24 hours. We\'re always happy to discuss your project requirements!'
+  },
+  {
+    keywords: ['portfolio', 'work', 'projects', 'examples', 'referenzen'],
+    response: 'Check out our portfolio page to see our previous work! We\'ve completed projects including e-commerce stores, hotel management systems, clinic management software, and more.'
+  },
+  {
+    keywords: ['team', 'who', 'company', 'about'],
+    response: 'xixasoft is a professional IT services company specializing in e-commerce solutions, custom web development, and digital marketing. Visit our About or Team page to learn more about us!'
+  },
+  {
+    keywords: ['service', 'offer', 'what', 'help', 'dienst'],
+    response: 'Our main services include: 1) JTL Shop & Shopware Development, 2) JTL WAWI Management, 3) Google Ads Management, 4) Laravel Custom Web Applications. How can we assist you?'
+  },
+  {
+    keywords: ['time', 'long', 'duration', 'deadline', 'zeit'],
+    response: 'Project timelines vary based on complexity. A simple theme might take 2-4 weeks, while custom applications can take 2-3 months. Contact us for an accurate timeline for your specific project.'
+  },
+  {
+    keywords: ['support', 'maintenance', 'help', 'issue', 'problem'],
+    response: 'We offer ongoing support and maintenance for all our projects. Whether you need bug fixes, updates, or new features, we\'re here to help keep your systems running smoothly.'
+  }
+];
+
+const defaultResponse = "I'm not sure I understand. You can ask me about our services like JTL Shop, Shopware, Laravel development, Google Ads, pricing, or how to contact us. Or visit our contact page to speak with our team directly!";
+
+class Chatbot {
+  constructor() {
+    this.isOpen = false;
+    this.messages = [
+      { text: "Hello! I'm the xixasoft assistant. How can I help you today?", isBot: true }
+    ];
+    this.init();
+  }
+
+  init() {
+    this.createHTML();
+    this.bindEvents();
+    this.renderMessages();
+  }
+
+  createHTML() {
+    const chatbotHTML = `
+      <button id="chatbot-toggle" class="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center transition-all duration-300 hover:scale-110" style="background: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(199, 89%, 48%));">
+        <i data-lucide="message-circle" class="w-6 h-6"></i>
+      </button>
+      
+      <div id="chatbot-window" class="fixed bottom-6 right-6 z-50 w-[350px] max-w-[calc(100vw-48px)] bg-card border border-border rounded-2xl shadow-2xl flex flex-col opacity-0 invisible transition-all duration-300" style="height: 500px; max-height: calc(100vh - 100px);">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-border rounded-t-2xl" style="background: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(199, 89%, 48%));">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+              <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+              <h3 class="font-semibold text-white">xixasoft Assistant</h3>
+              <p class="text-xs text-white/70">Online • Ready to help</p>
+            </div>
+          </div>
+          <button id="chatbot-close" class="text-white/70 hover:text-white transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <!-- Messages -->
+        <div id="chatbot-messages" class="flex-1 overflow-y-auto p-4 space-y-4"></div>
+
+        <!-- Typing Indicator -->
+        <div id="chatbot-typing" class="hidden px-4 pb-2">
+          <div class="flex gap-2 items-center">
+            <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <i data-lucide="bot" class="w-4 h-4 text-primary" style="color: hsl(262, 83%, 58%);"></i>
+            </div>
+            <div class="bg-muted px-4 py-2 rounded-2xl rounded-tl-none">
+              <div class="flex gap-1">
+                <span class="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style="animation-delay: 0ms;"></span>
+                <span class="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style="animation-delay: 150ms;"></span>
+                <span class="w-2 h-2 bg-foreground/40 rounded-full animate-bounce" style="animation-delay: 300ms;"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Input -->
+        <div class="p-4 border-t border-border">
+          <div class="flex gap-2">
+            <input type="text" id="chatbot-input" placeholder="Type your message..." class="flex-1 px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+            <button id="chatbot-send" class="px-4 py-2 rounded-lg text-white" style="background: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(199, 89%, 48%));">
+              <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', chatbotHTML);
+    lucide.createIcons();
+  }
+
+  bindEvents() {
+    document.getElementById('chatbot-toggle').addEventListener('click', () => this.open());
+    document.getElementById('chatbot-close').addEventListener('click', () => this.close());
+    document.getElementById('chatbot-send').addEventListener('click', () => this.sendMessage());
+    document.getElementById('chatbot-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') this.sendMessage();
+    });
+  }
+
+  open() {
+    this.isOpen = true;
+    document.getElementById('chatbot-toggle').classList.add('hidden');
+    const window = document.getElementById('chatbot-window');
+    window.classList.remove('opacity-0', 'invisible');
+    window.classList.add('opacity-100', 'visible');
+  }
+
+  close() {
+    this.isOpen = false;
+    document.getElementById('chatbot-toggle').classList.remove('hidden');
+    const window = document.getElementById('chatbot-window');
+    window.classList.add('opacity-0', 'invisible');
+    window.classList.remove('opacity-100', 'visible');
+  }
+
+  findResponse(input) {
+    const lowerInput = input.toLowerCase();
+    for (const faq of faqData) {
+      if (faq.keywords.some(keyword => lowerInput.includes(keyword))) {
+        return faq.response;
+      }
+    }
+    return defaultResponse;
+  }
+
+  sendMessage() {
+    const input = document.getElementById('chatbot-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Add user message
+    this.messages.push({ text, isBot: false });
+    this.renderMessages();
+    input.value = '';
+
+    // Show typing indicator
+    document.getElementById('chatbot-typing').classList.remove('hidden');
+
+    // Simulate response delay
+    setTimeout(() => {
+      document.getElementById('chatbot-typing').classList.add('hidden');
+      this.messages.push({ text: this.findResponse(text), isBot: true });
+      this.renderMessages();
+    }, 800);
+  }
+
+  renderMessages() {
+    const container = document.getElementById('chatbot-messages');
+    container.innerHTML = this.messages.map(msg => `
+      <div class="flex gap-2 ${msg.isBot ? 'justify-start' : 'justify-end'}">
+        ${msg.isBot ? `
+          <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <i data-lucide="bot" class="w-4 h-4" style="color: hsl(262, 83%, 58%);"></i>
+          </div>
+        ` : ''}
+        <div class="max-w-[80%] px-4 py-2 rounded-2xl text-sm ${
+          msg.isBot 
+            ? 'bg-muted text-foreground rounded-tl-none' 
+            : 'text-white rounded-tr-none'
+        }" ${!msg.isBot ? 'style="background: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(199, 89%, 48%));"' : ''}>
+          ${msg.text}
+        </div>
+        ${!msg.isBot ? `
+          <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, hsl(262, 83%, 58%), hsl(199, 89%, 48%));">
+            <i data-lucide="user" class="w-4 h-4 text-white"></i>
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+    
+    lucide.createIcons();
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+// Initialize chatbot when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  new Chatbot();
+});
+```
+
+#### Add to includes/footer.php (before closing body tag)
+```php
+<script src="/js/chatbot.js"></script>
+```
+
+---
+
 ## Component to HTML Mapping Reference
 
 | React Component | PHP/HTML Equivalent |
@@ -783,11 +1012,13 @@ include 'includes/header.php';
 - [ ] Copy all assets to `/assets/` folder
 - [ ] Create `/includes/` folder with head.php, header.php, footer.php
 - [ ] Create `/css/` folder with styles.css, animations.css
-- [ ] Create `/js/` folder with main.js, slider.js
+- [ ] Create `/js/` folder with main.js, slider.js, chatbot.js
 - [ ] Convert each page (index, about, services, team, portfolio, contact)
 - [ ] Convert service subpages
 - [ ] Convert legal pages
+- [ ] Add chatbot.js script to footer
 - [ ] Test all navigation links
 - [ ] Test mobile responsiveness
 - [ ] Test slider functionality
+- [ ] Test chatbot functionality
 - [ ] Set up PHP server (XAMPP, WAMP, or hosting)
